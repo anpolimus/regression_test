@@ -1,0 +1,4 @@
+name = Regression testing module
+description = Module that provide's ability to make regression tests on project.
+package = Testing
+core = 7.x

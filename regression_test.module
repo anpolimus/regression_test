@@ -1,0 +1,83 @@
+<?php
+
+/**
+ * Helper module for processing of regression testing on the project.
+ * @author Anatolliy Polyakov <anatoliy.polyakov@door3.com>
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function regression_test_menu() {
+  $items = array();
+
+  $items['admin/config/development/regression_testing'] = array(
+    'title' => 'Regression testing config',
+    'description' => 'Page for peocessing and configuring regression testing page',
+    'page callback' => '_regression_test_admin_page',
+    'access arguments' => 'use regression testing',
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function regression_test_permission() {
+  return array(
+    'use regression testing' => array(
+      'title' => t('use regression testing'),
+      'description' => t('Ability to configure and use regression testing tool'),
+    )
+  );
+}
+
+/**
+ * Render callback for rendering test-url-by-list form.
+ */
+function regression_test_admin_form($form, &$form_state) {
+  $form['list'] = array(
+    '#type' => 'textarea',
+    '#title' => t('List of urls to check'),
+    '#rows' => 10,
+    '#default_value' => implode("\n", variable_get('regression_test_links_list', '')),
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Submit'),
+  );
+
+  return $form;
+}
+
+/**
+ * Submit callback for rendering test-url-by-list form.
+ */
+function regression_test_admin_form_submit($form, &$form_state) {
+ dpm($form_state['values']);
+  $values = $form_state['values'];
+  $list = explode("\n", $values['list']);
+  dpm($list);
+  variable_set('regression_test_links_list', $list);
+  dpm('List saved');
+}
+
+/**
+ * Callback for rendering regression testing administration page.
+ * @return render array of the page.
+ */
+function _regression_test_admin_page() {
+
+  if (user_access('use regression testing')) {
+    return array(
+      drupal_get_form('regression_test_admin_form')
+    );
+  } else {
+
+  }
+}
+
+
+
