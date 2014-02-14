@@ -76,35 +76,19 @@ function regression_test_admin_form_submit($form, &$form_state) {
     'operations' => $operations,
     'finished' => '_regression_test_batch_finished',
   );
-
   batch_set($batch);
 }
 
 /**
  * Function for processing batch loop.
  */
-function _regression_test_batch_loop(&$context) {
-  if (empty($context['sandbox'])) {
-    $context['sandbox'] = array();
-    $context['sandbox']['progress'] = 0;
-    // Save count of url to check
-    $context['sandbox']['max'] = count(variable_get('regression_test_links_list', array()));
+function _regression_test_batch_loop($item, $title, &$context) {
+  $result = drupal_http_request('http://' . $_SERVER['HTTP_HOST'] . '/' . $item);
+  $result->url = 'http://' . $_SERVER['HTTP_HOST'] . '/' . $item;
+  if (in_array($result->code, array(200, 304))) {
+    $context['results']['good'][] = $result->url . ' : ' . $result->code;
   } else {
-    $list = variable_get('regression_test_links_list', array());
-    dd($list);
-    $item = $list[$context['sandbox']['progress']];
-    $result = drupal_http_request('http://' . $_SERVER['HTTP_HOST'] . '/' . $item);
-    $result->url = 'http://' . $_SERVER['HTTP_HOST'] . '/' . $item;
-    if (in_array($result->code, array(200, 304))) {
-      $context['results']['good'][] = $result;
-    } else {
-      $context['results']['bad'][] = $result;
-    }
-    $context['sandbox']['progress']++;
-  }
-
-  if ($context['sandbox']['progress'] != $context['sandbox']['max']) {
-    $context['finished'] = ($context['sandbox']['progress'] >= $context['sandbox']['max']);
+    $context['results']['bad'][] = $result->url . ' : ' . $result->code;
   }
 }
 
@@ -113,7 +97,10 @@ function _regression_test_batch_loop(&$context) {
  */
 function _regression_test_batch_finished($success, $results, $operations) {
   if ($success) {
-    dpm($results);
+    $good_urls = $results['good'];
+    $bad_urls = $results['bad'];
+    drupal_set_message(t('Bad urls: @urls', array('@urls' => implode("\n", $bad_urls))));
+    drupal_set_message(t('Good urls: @urls', array('@urls' => implode("\n", $good_urls))));
   }
 }
 
