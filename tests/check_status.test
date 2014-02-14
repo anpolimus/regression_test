@@ -1,0 +1,23 @@
+<?php
+
+class RegressionTestCheckStatusTestCase extends DrupalWebTestCase {
+  public static function getInfo() {
+    return array(
+      'name' => 'Check Status',
+      'description' => '',
+      'group' => 'Regression test',
+    );
+  }
+
+  public function setUp() {
+    // We call parent::setUp() with the list of modules we want to enable.
+    parent::setUp('regression_test');
+  }
+
+  public function testCheckStatus() {
+     $get = $this->drupalGet('user');
+     dpm($this);
+     $this->assertResponse(200);
+  }
+
+}

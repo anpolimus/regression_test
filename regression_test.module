@@ -56,12 +56,65 @@ function regression_test_admin_form($form, &$form_state) {
  * Submit callback for rendering test-url-by-list form.
  */
 function regression_test_admin_form_submit($form, &$form_state) {
- dpm($form_state['values']);
   $values = $form_state['values'];
   $list = explode("\n", $values['list']);
-  dpm($list);
+
   variable_set('regression_test_links_list', $list);
-  dpm('List saved');
+
+  foreach ($list as $item) {
+    $operations[] = array(
+      '_regression_test_batch_loop',
+      array(
+        $item,
+        t('(Checking url: @operation)', array('@operation' => $item)),
+      ),
+    );
+  }
+
+  $batch = array(
+    'title' => t('Running regression tests'),
+    'operations' => $operations,
+    'finished' => '_regression_test_batch_finished',
+  );
+
+  batch_set($batch);
+}
+
+/**
+ * Function for processing batch loop.
+ */
+function _regression_test_batch_loop(&$context) {
+  if (empty($context['sandbox'])) {
+    $context['sandbox'] = array();
+    $context['sandbox']['progress'] = 0;
+    // Save count of url to check
+    $context['sandbox']['max'] = count(variable_get('regression_test_links_list', array()));
+  } else {
+    $list = variable_get('regression_test_links_list', array());
+    dd($list);
+    $item = $list[$context['sandbox']['progress']];
+    $result = drupal_http_request('http://' . $_SERVER['HTTP_HOST'] . '/' . $item);
+    $result->url = 'http://' . $_SERVER['HTTP_HOST'] . '/' . $item;
+    if (in_array($result->code, array(200, 304))) {
+      $context['results']['good'][] = $result;
+    } else {
+      $context['results']['bad'][] = $result;
+    }
+    $context['sandbox']['progress']++;
+  }
+
+  if ($context['sandbox']['progress'] != $context['sandbox']['max']) {
+    $context['finished'] = ($context['sandbox']['progress'] >= $context['sandbox']['max']);
+  }
+}
+
+/**
+ * Function for processing finish of batch.
+ */
+function _regression_test_batch_finished($success, $results, $operations) {
+  if ($success) {
+    dpm($results);
+  }
 }
 
 /**
