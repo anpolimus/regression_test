@@ -34,6 +34,42 @@ function regression_test_permission() {
 }
 
 /**
+ * Render callback for test-all_urls form.
+ */
+function regression_test_all_admin_form($form, &$form_state) {
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Check all existed aliases'),
+  );
+  return $form;
+}
+
+/**
+ * Submit callback for test-all-urls form.
+ */
+function regression_test_all_admin_form_submit($form, &$form_state) {
+  $items = db_select('url_alias', 'u')
+   ->fields('u', array('source','alias'))
+   ->execute()
+   ->fetchAll();
+  foreach ($items as $item) {
+    $operations[] = array(
+      '_regression_test_batch_loop',
+      array(
+        $item->alias,
+        t('(Checking url: @operation)', array('@operation' => $item->alias)),
+      ),
+    );
+  }
+  $batch = array(
+    'title' => t('Running regression tests'),
+    'operations' => $operations,
+    'finished' => '_regression_test_batch_finished',
+  );
+  batch_set($batch);
+}
+
+/**
  * Render callback for rendering test-url-by-list form.
  */
 function regression_test_admin_form($form, &$form_state) {
@@ -112,7 +148,12 @@ function _regression_test_admin_page() {
 
   if (user_access('use regression testing')) {
     return array(
-      drupal_get_form('regression_test_admin_form')
+      array(
+        drupal_get_form('regression_test_admin_form'),
+      ),
+      array(
+        drupal_get_form('regression_test_all_admin_form'),
+      ),
     );
   } else {
 
