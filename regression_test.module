@@ -135,8 +135,8 @@ function _regression_test_batch_finished($success, $results, $operations) {
   if ($success) {
     $good_urls = $results['good'];
     $bad_urls = $results['bad'];
-    drupal_set_message(t('Bad urls: @urls', array('@urls' => implode("\n", $bad_urls))));
-    drupal_set_message(t('Good urls: @urls', array('@urls' => implode("\n", $good_urls))));
+    drupal_set_message(t('Bad urls: @urls', array('@urls' =>  print_r($bad_urls,1))), 'warning');
+    drupal_set_message(t('Good urls: @urls', array('@urls' => print_r($good_urls,1))));
   }
 }
 
