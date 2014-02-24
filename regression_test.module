@@ -122,9 +122,15 @@ function _regression_test_batch_loop($item, $title, &$context) {
   $result = drupal_http_request('http://' . $_SERVER['HTTP_HOST'] . '/' . $item);
   $result->url = 'http://' . $_SERVER['HTTP_HOST'] . '/' . $item;
   if (in_array($result->code, array(200, 304))) {
-    $context['results']['good'][] = $result->url . ' : ' . $result->code;
+    $context['results']['good'][] = array(
+      'url' => $result->url,
+      'status' => $result->code,
+    );
   } else {
-    $context['results']['bad'][] = $result->url . ' : ' . $result->code;
+    $context['results']['bad'][] = array(
+      'url' => $result->url,
+      'status' => $result->code,
+    );
   }
 }
 
@@ -135,9 +141,25 @@ function _regression_test_batch_finished($success, $results, $operations) {
   if ($success) {
     $good_urls = $results['good'];
     $bad_urls = $results['bad'];
-    drupal_set_message(t('Bad urls: @urls', array('@urls' =>  print_r($bad_urls,1))), 'warning');
-    drupal_set_message(t('Good urls: @urls', array('@urls' => print_r($good_urls,1))));
+    $_SESSION['regression_test_results'] = array(
+      'bad_urls' => $bad_urls,
+      'good_urls' => $good_urls
+    );
   }
+}
+
+/**
+ * Helper function for preparing row data in table.
+ */
+function _regression_test_prepare_row_data($urls) {
+  $rows = array();
+  foreach ($urls as $item) {
+    $rows[] = array(
+      array('data' => $item['url']),
+      array('data' => $item['status'])
+    );
+  }
+  return $rows;
 }
 
 /**
@@ -145,18 +167,41 @@ function _regression_test_batch_finished($success, $results, $operations) {
  * @return render array of the page.
  */
 function _regression_test_admin_page() {
+  $render_array = array();
 
   if (user_access('use regression testing')) {
-    return array(
-      array(
-        drupal_get_form('regression_test_admin_form'),
-      ),
-      array(
-        drupal_get_form('regression_test_all_admin_form'),
-      ),
-    );
+    if (!empty($_SESSION['regression_test_results'])) {
+      $good_urls = $_SESSION['regression_test_results']['good_urls'];
+      $bad_urls = $_SESSION['regression_test_results']['bad_urls'];
+      $rows = array();
+      foreach ($good_urls as $item) {
+        $rows[] = array(
+          array('data' => $item['url']),
+          array('data' => $item['status'])
+        );
+      }
+      $render_array[]= array(
+        '#theme' => 'table',
+        '#header' => array(
+          array('data' => t('Bad url')),
+          array('data' => t('Url status')),
+        ),
+        '#rows' => _regression_test_prepare_row_data($bad_urls),
+      );
+      $render_array[]= array(
+        '#theme' => 'table',
+        '#header' => array(
+          array('data' => t('Good url')),
+          array('data' => t('Url status')),
+        ),
+        '#rows' => _regression_test_prepare_row_data($good_urls),
+      );
+    }
+    $render_array[]= drupal_get_form('regression_test_admin_form');
+    $render_array[]= drupal_get_form('regression_test_all_admin_form');
+    return $render_array;
   } else {
-
+    drupal_access_denied();
   }
 }
 
